@@ -149,7 +149,6 @@ def numerical_testing(df, col):
 
     corr, p_values = pearsonr(df[col],
                               df.aiContent)
-
     print(
         f"\nResults of the Pearson test: Correlation is {corr}, with a p-value of {p_values:.05f}.")
     print(f"AI_Content and {col} are",
@@ -157,6 +156,8 @@ def numerical_testing(df, col):
 
 
 def plotbars(dfs, titles, colors):
+    """plots bargraphs of the ratings distribution and returns frequency table
+    """
     fig, axs = plt.subplots(1, 2, figsize=(10, 4))
     counts_for_testing = []
 
