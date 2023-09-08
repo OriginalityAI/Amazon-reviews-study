@@ -69,18 +69,34 @@ def plot_trend(df, start=1990):
     data = df.copy()
     data.rename(columns={'ai_content': 'aiContent'})
 #     data[data['ai_content'].map(type) !=float] check for errors
-    tmp = data[['aiContent', 'date']].groupby(
+    tmp_ = data[['aiContent', 'date']].groupby(
         pd.Grouper(key="date", freq='1D')).mean()
+    tmp_ = tmp_.dropna()['aiContent'][str(start):]
+
+    
+    tmp = data[['aiContent', 'date']].groupby(
+        pd.Grouper(key="date", freq='1M')).mean()
     tmp = tmp.dropna()['aiContent'][str(start):]
 
     fig, ax = plt.subplots(figsize=(10, 7))
-    tmp.plot(ax=ax, x_compat=True, label='aiContent')
-    ax.xaxis.set_major_locator(mdates.MonthLocator())
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
+    ax = tmp.plot(kind = 'bar', ax=ax, label='aiContent')
+    for bar in bars:
+    height = bar.get_height()
+    plt.annotate(f'{height}', xy=(bar.get_x() + bar.get_width() / 2, height), xytext=(0, 3), 
+                 textcoords='offset points', ha='center', va='bottom')
+
+    
+    date_labels = tmp.index.strftime('%Y-%m')
+    ax.set_xticklabels(date_labels)
     plt.xticks(rotation=90)
     plt.legend()
     plt.tight_layout()
-    return tmp
+    plt.title('Monthly Average')
+    plt.grid(which='minor', linestyle=':', linewidth='0.5', color='gray')
+    plt.minorticks_on()  # Turn on minor ticks on the axes
+    plt.gca().xaxis.set_minor_locator(plt.MultipleLocator(0.5)) 
+
+    return tmp_
 
 
 def missing_values(data):
@@ -100,58 +116,58 @@ def generate_df_plot(tmp, start='2022-01'):
     # reindex the time series
     date_index = pd.date_range(start=time_df.index[0],
                                end=time_df.index[-1],
-                               freq='D')
+                               freq='D') # D
     time_df = time_df.reindex(date_index).astype(float)
     # time_df = time_df.interpolate('nearest')
     time_df = missing_values(time_df)
     return time_df
 
 
-def categorical_testing(df, col):
+def categorical_testing(df, col, col_2='aiContent'):
     import seaborn as sns
     from scipy.stats import f_oneway
 
     # bar plot
-    sns.barplot(data=df, x=col, y='aiContent')
+    sns.barplot(data=df, x=col, y=col_2)
     plt.xticks(rotation=90)
     plt.yticks([])
     plt.show()
 
     # f-oneway stats test
-    catgroup = df.groupby(col)['aiContent'].apply(list)
+    catgroup = df.groupby(col)[col_2].apply(list)
     p = f_oneway(*catgroup)[1]
     print(f"p value is {p:05f}.")
-    print(f"AI_Content and {col} are",
+    print(f"{col_2} and {col} are",
           "correlated." if p < 0.05 else "not correlated.")
 
 
-def numerical_testing(df, col):
+def numerical_testing(df, col, col_2='aiContent'):
     # analysis by visualization
     # plotting the helpfulScore against aiContent
     sns.scatterplot(data=df, y="aiContent", x=col, hue="ratingScore")
-    plt.title('Standardized Helpfulness Count vs AI Content Probability')
+    plt.title('Standardized Helpfulness Count vs '+ ('AI Content Probability' if col_2 == 'aiContent' else f'{col_2}'))
 
     # stats testing
     from scipy.stats import spearmanr, kendalltau, pearsonr
     corr, p_values = spearmanr(df[col],
-                               df.aiContent)
+                               df[col_2])
     print(
         f"\nResults of the Spearman test: Correlation is {corr}, with a p-value of {p_values:.05f}.")
-    print(f"AI_Content and {col} are",
+    print(f"{col_2} and {col} are",
           "correlated." if p_values < 0.05 else "not correlated.")
 
     corr, p_values = kendalltau(df[col],
-                                df.aiContent)
+                                df[col_2])
     print(
         f"\nResults of the Kendall Tau test: Correlation is {corr}, with a p-value of {p_values:.05f}.")
-    print(f"AI_Content and {col} are",
+    print(f"{col_2} and {col} are",
           "correlated." if p_values < 0.05 else "not correlated.")
 
     corr, p_values = pearsonr(df[col],
-                              df.aiContent)
+                              df[col_2])
     print(
         f"\nResults of the Pearson test: Correlation is {corr}, with a p-value of {p_values:.05f}.")
-    print(f"AI_Content and {col} are",
+    print(f"{col_2} and {col} are",
           "correlated." if p_values < 0.05 else "not correlated.")
 
 
@@ -194,13 +210,14 @@ def analyze_timeseries_with_prophet(time_df):
     m = Prophet(
         weekly_seasonality=False,
         yearly_seasonality=False,
+        changepoint_prior_scale=0.03
     )
+    m.add_seasonality(name='monthly', period=30.5, fourier_order=10)
     m.changepoint = pd.to_datetime(['2022-11-30'])
     forecast = m.fit(prophet_df)
     # make predictions
-    future = m.make_future_dataframe(periods=1)  # 1 day
+    future = m.make_future_dataframe(periods=30)  # 1 month
     forecast = m.predict(future)
-    forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail()
 
     # plot predictions
     fig1 = m.plot(forecast)
@@ -209,9 +226,36 @@ def analyze_timeseries_with_prophet(time_df):
     plt.figure(figsize=(9, 4))
     plt.plot(forecast['ds'], forecast['trend'], label='Trend')
     plt.xlabel('Date')
-    plt.ylabel('Trend Value')
-    plt.title('AI Content Trend Analysis')
+    plt.ylabel('Average of Reviews with 50% or more AI Content')
+    plt.title('Trend Analysis')
+
+
+
     plt.legend()
     plt.grid()
+
+    # add November 30, 2022 vertical marker
+    nov302022 = pd.to_datetime('2022-11-30')
+    
+    aiContent_nov302022 = forecast[forecast['ds'] == nov302022]['trend'].values[0]
+    plt.axvline(x=nov302022, color='red', linestyle='--', label='Chat GPT launch')
+    plt.text(nov302022, 
+             aiContent_nov302022, 
+             f'{aiContent_nov302022:.3f} \n@ Nov 30, 2022', 
+             rotation=0, 
+             va='center', 
+             ha='right', 
+             bbox=dict(boxstyle='round', alpha=0.1, lw=0, pad=0))
+    plt.legend()
     plt.show()
-    return m
+
+    forecast_filtered = forecast[forecast['ds'] >= nov302022].copy()
+    plt.plot(forecast_filtered['ds'], forecast_filtered['trend'], label='Trend', color='g')
+    plt.xlabel('Date')
+    plt.ylabel('Trend Value')
+    plt.title('AI Content Trend Analysis after Chat GPT Launch')
+    plt.xticks(rotation=90)
+    plt.show()
+
+    
+    return m, forecast
