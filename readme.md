@@ -23,11 +23,9 @@ All functions are from the `scipy.stats` package library.
 
 ### Trend Analysis
 
-Trend analysis was done with `Prophet` with weekly and yearly seasonality tuned to `False`.
+Trend Analysis was done by converting `aiContent` into a binary feature and aggregating its annual averages.
 
 ## Results
-
-![timeline](Images/timeline.png)
 
 ![helpfulScore](Images/helpfulScore.png)
 
@@ -37,11 +35,9 @@ Trend analysis was done with `Prophet` with weekly and yearly seasonality tuned 
 
 ![isVerified](Images/isVerified.png)
 
-![prophet-trend](Images/prophet_trend.png)
-
 ### Key Findings
 
-- Almost 100% rise in `aiContent` trend from December 2022 (when Chat GPT launched) to August 2023 (time of this study).
+- Roughly 400% rise in `aiContent` trend from 2022 to 2023. Chat GPT launched on November 30, 2022.
 - Correlation between `aiContent` and `ratingSeverity`, `ratingScore` and `isVerified`.
 - Negative correlation(~-6%) between `helpfulScore` and `aiContent`.
 
