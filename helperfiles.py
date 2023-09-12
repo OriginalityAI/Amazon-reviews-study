@@ -13,6 +13,9 @@ import os
 from pathlib import Path
 import warnings
 warnings.filterwarnings("ignore")
+import scienceplots
+
+milestone_date = pd.Timestamp("2022-11-30")
 
 
 def get_data_for_analysis():
@@ -46,7 +49,6 @@ def extract_votes(reviewReaction):
         num = int(num)
     return num
 
-
 def generate_helpfulScore(helpfulCount, totalCategoryRatings, totalCategoryReviews):
     """
     uses totalCategoryRatings (int) and totalCategoryReviews (int) to standardize the helpfulCount
@@ -60,44 +62,45 @@ def generate_helpfulScore(helpfulCount, totalCategoryRatings, totalCategoryRevie
     helpfulScore = helpfulCount/geo_mean
     return min(1, helpfulScore)
 
-
-def plot_trend(df, start=1990):
+def plot_trend(df, start=2022, freq='1Y'):
     """
     turns the ai_content into a timeseries and plots it
     from the given start date
+    and given timeseries frequency
     """
+   
     data = df.copy()
     data.rename(columns={'ai_content': 'aiContent'})
 #     data[data['ai_content'].map(type) !=float] check for errors
     tmp_ = data[['aiContent', 'date']].groupby(
         pd.Grouper(key="date", freq='1D')).mean()
     tmp_ = tmp_.dropna()['aiContent'][str(start):]
-
-    
+ 
     tmp = data[['aiContent', 'date']].groupby(
-        pd.Grouper(key="date", freq='1M')).mean()
+        pd.Grouper(key="date", freq=freq)).mean()
     tmp = tmp.dropna()['aiContent'][str(start):]
-
-    fig, ax = plt.subplots(figsize=(10, 7))
-    ax = tmp.plot(kind = 'bar', ax=ax, label='aiContent')
-    for bar in bars:
-    height = bar.get_height()
-    plt.annotate(f'{height}', xy=(bar.get_x() + bar.get_width() / 2, height), xytext=(0, 3), 
-                 textcoords='offset points', ha='center', va='bottom')
-
     
-    date_labels = tmp.index.strftime('%Y-%m')
-    ax.set_xticklabels(date_labels)
-    plt.xticks(rotation=90)
-    plt.legend()
-    plt.tight_layout()
-    plt.title('Monthly Average')
-    plt.grid(which='minor', linestyle=':', linewidth='0.5', color='gray')
-    plt.minorticks_on()  # Turn on minor ticks on the axes
-    plt.gca().xaxis.set_minor_locator(plt.MultipleLocator(0.5)) 
+    with plt.style.context(['science', 'high-vis']):
+
+        tmp.plot(kind='bar', label='aiContent')
+        plt.title('AI generated Amazon reviews')
+        plt.yticks(np.arange(0,0.1,1))
+        plt.xticks(range(len(tmp.index)), tmp.index.strftime('%Y'))
+        
+        # Color difference between before and after Nov 2022
+        for idx, date in enumerate(tmp.index):
+            if date > milestone_date:
+                plt.gca().patches[idx].set_facecolor('orange')
+        
+        # # Add labels
+        # for container in plt.containers:
+        #     plt.bar_label(container, fmt='%.3f', color='brown', padding=1.5)
+
+        for i, val in enumerate(tmp):
+            plt.text(i, val, f'{val:.3f}', ha='center', va='bottom', color='brown')    
+        plt.show()
 
     return tmp_
-
 
 def missing_values(data):
     """
@@ -106,7 +109,6 @@ def missing_values(data):
     split = '2022-11-30'
     df1, df2 = data[:split], data[split:]
     return pd.concat([df1.fillna(0), df2.interpolate('nearest')])
-
 
 def generate_df_plot(tmp, start='2022-01'):
     """
@@ -122,30 +124,42 @@ def generate_df_plot(tmp, start='2022-01'):
     time_df = missing_values(time_df)
     return time_df
 
-
 def categorical_testing(df, col, col_2='aiContent'):
+    """visualize and stats test for dependencies between 
+    input: col a categorical feature and col_2, a numerical feature
+    output: barplot and analysis result
+    """
     import seaborn as sns
     from scipy.stats import f_oneway
 
     # bar plot
-    sns.barplot(data=df, x=col, y=col_2)
-    plt.xticks(rotation=90)
-    plt.yticks([])
-    plt.show()
+    with plt.style.context(['science', 'vibrant', 'grid']):
+        sns.barplot(data=df, x=col, y=col_2)
+        plt.xticks(rotation=90)
+        plt.yticks([])
+        plt.title(f'Visual analysis of {col} vs {col_2}')
+        # plt.legend()
+        plt.grid()
+        plt.show()
 
     # f-oneway stats test
     catgroup = df.groupby(col)[col_2].apply(list)
     p = f_oneway(*catgroup)[1]
     print(f"p value is {p:05f}.")
     print(f"{col_2} and {col} are",
-          "correlated." if p < 0.05 else "not correlated.")
-
+          "correlated." if p < 0.05 else "not correlated.\n\n")
 
 def numerical_testing(df, col, col_2='aiContent'):
+    """visualize and stats test for dependencies between 
+    input: col a numerical feature and col_2, another numerical feature
+    output: scatter plot and analysis result
+    """
     # analysis by visualization
     # plotting the helpfulScore against aiContent
-    sns.scatterplot(data=df, y="aiContent", x=col, hue="ratingScore")
-    plt.title('Standardized Helpfulness Count vs '+ ('AI Content Probability' if col_2 == 'aiContent' else f'{col_2}'))
+    with plt.style.context(['science', 'std-colors']):
+        sns.scatterplot(data=df, y="aiContent", x=col, hue="ratingScore")
+        plt.title('Standardized Helpfulness Count vs '+ ('AI Content Probability' if col_2 == 'aiContent' else f'{col_2}'))
+        plt.show()
 
     # stats testing
     from scipy.stats import spearmanr, kendalltau, pearsonr
@@ -174,88 +188,21 @@ def numerical_testing(df, col, col_2='aiContent'):
 def plotbars(dfs, titles, colors):
     """plots bargraphs of the ratings distribution and returns frequency table
     """
-    fig, axs = plt.subplots(1, 2, figsize=(10, 4))
-    counts_for_testing = []
-
-    # Loop through the subplots and create barplots
-    for i, ax in enumerate(axs):
-        # frequency distribution table of the ratings
-        counts = dfs[i].value_counts()
-        # collect the data for statistics testing
-        counts_for_testing.append(counts)
-        ax.bar(counts.index, counts, width=1, label=titles[i], color=colors[i])
-        ax.set_xlabel('Rating')
-        ax.legend()
-
-    plt.ylabel('Number of Reviews')
-    plt.tight_layout()
-    plt.show()
+    with plt.style.context(['science', 'std-colors']):
+        fig, axs = plt.subplots(1, 2, figsize=(10, 4))
+        counts_for_testing = []
+    
+        # Loop through the subplots and create barplots
+        for i, ax in enumerate(axs):
+            # frequency distribution table of the ratings
+            counts = dfs[i].value_counts()
+            # collect the data for statistics testing
+            counts_for_testing.append(counts)
+            ax.bar(counts.index, counts, width=1, label=titles[i], color=colors[i])
+            ax.set_xlabel('Rating')
+            ax.legend()
+    
+        plt.ylabel('Number of Reviews')
+        plt.tight_layout()
+        plt.show()
     return counts_for_testing
-
-
-def analyze_timeseries_with_prophet(time_df):
-    """
-    input: dataframe as a timeseries
-    analyzes the timeseries with Prophet forecasting tool
-    to study the trend and seasonality
-    and plots the series and a trend plot
-    can also be used for predictions by changing the
-    period parameter (days) in the future declaration
-    """
-    # required to rename columns to run through the Prophet API
-    prophet_df = time_df.reset_index().rename(
-        columns={'index': 'ds', 'aiContent': 'y'})
-
-    # instantiate a Prophet object and call fit
-    m = Prophet(
-        weekly_seasonality=False,
-        yearly_seasonality=False,
-        changepoint_prior_scale=0.03
-    )
-    m.add_seasonality(name='monthly', period=30.5, fourier_order=10)
-    m.changepoint = pd.to_datetime(['2022-11-30'])
-    forecast = m.fit(prophet_df)
-    # make predictions
-    future = m.make_future_dataframe(periods=30)  # 1 month
-    forecast = m.predict(future)
-
-    # plot predictions
-    fig1 = m.plot(forecast)
-    plt.show()
-    # plot trend
-    plt.figure(figsize=(9, 4))
-    plt.plot(forecast['ds'], forecast['trend'], label='Trend')
-    plt.xlabel('Date')
-    plt.ylabel('Average of Reviews with 50% or more AI Content')
-    plt.title('Trend Analysis')
-
-
-
-    plt.legend()
-    plt.grid()
-
-    # add November 30, 2022 vertical marker
-    nov302022 = pd.to_datetime('2022-11-30')
-    
-    aiContent_nov302022 = forecast[forecast['ds'] == nov302022]['trend'].values[0]
-    plt.axvline(x=nov302022, color='red', linestyle='--', label='Chat GPT launch')
-    plt.text(nov302022, 
-             aiContent_nov302022, 
-             f'{aiContent_nov302022:.3f} \n@ Nov 30, 2022', 
-             rotation=0, 
-             va='center', 
-             ha='right', 
-             bbox=dict(boxstyle='round', alpha=0.1, lw=0, pad=0))
-    plt.legend()
-    plt.show()
-
-    forecast_filtered = forecast[forecast['ds'] >= nov302022].copy()
-    plt.plot(forecast_filtered['ds'], forecast_filtered['trend'], label='Trend', color='g')
-    plt.xlabel('Date')
-    plt.ylabel('Trend Value')
-    plt.title('AI Content Trend Analysis after Chat GPT Launch')
-    plt.xticks(rotation=90)
-    plt.show()
-
-    
-    return m, forecast
