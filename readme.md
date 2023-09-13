@@ -18,8 +18,8 @@ Approximately 26K product review records was retrieved from Amazon. After cleani
 All functions are from the `scipy.stats` package library.
 
 - Analysis of aiContent against categorical features was performed with `f_oneway` one-way ANOVA testing. For the case of comparing categorical data against numerical data, it tests against the Null hypothesis that the two features are not correlated.
-- Analysis of aiContent against numerical features was performed with `pearsonr`, `kendalltau` and `spearmanr`. They test for the null Hypothesis that the features are not correlated. 
-- Analysis of the distribution of the sample data, to confirm that it's representative of the raw data was performed with `ks_2samp`, `chisquare`, and `entropy`. The first two tests for the null hypothesis that 2 independent samples are drawn from the same continuous distribution. The last is a test of the difference in the distributions. 
+- Analysis of aiContent against numerical features was performed with `pearsonr`, `kendalltau` and `spearmanr`. They test for the null Hypothesis that the features are not correlated.
+- Analysis of the distribution of the sample data, to confirm that it's representative of the raw data was performed with `ks_2samp`, `chisquare`, and `entropy`. The first two tests for the null hypothesis that 2 independent samples are drawn from the same continuous distribution. The last is a test of the difference in the distributions.
 
 ### Trend Analysis
 
