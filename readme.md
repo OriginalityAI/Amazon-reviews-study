@@ -27,13 +27,13 @@ Trend Analysis was done by converting `aiContent` into a binary feature and aggr
 
 ## Results
 
-![helpfulScore](Images/helpfulScore.png)
+![helpfulScore](images/helpfulScore.png)
 
-![ratingSeverity](Images/ratingSeverity.png)
+![ratingSeverity](images/ratingSeverity.png)
 
-![ratingScore](Images/ratingScore.png)
+![ratingScore](images/ratingScore.png)
 
-![isVerified](Images/isVerified.png)
+![isVerified](images/isVerified.png)
 
 ### Key Findings
 
