@@ -35,6 +35,8 @@ Trend Analysis was done by converting `aiContent` into a binary feature and aggr
 
 ![isVerified](images/isVerified.png)
 
+![annualTrend](images/annual_trend.png)
+
 ### Key Findings
 
 - Roughly 400% rise in `aiContent` trend from 2022 to 2023. Chat GPT launched on November 30, 2022.

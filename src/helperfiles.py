@@ -66,8 +66,10 @@ def plot_trend(df, start=2022, freq='1Y'):
     with plt.style.context(['science', 'ieee', 'high-vis']):
 
         tmp.plot(kind='bar', label='aiContent')
-        plt.title('AI generated Amazon reviews')
-        plt.yticks(np.arange(0,0.1,1))
+        plt.title('Amazon reviews with over 50 \% AI Content')
+        plt.minorticks_on()
+        plt.ylim(0, 0.10)
+#         plt.yticks(np.arange(0,0.1,0.01), minor=True)
         plt.xticks(range(len(tmp.index)), tmp.index.strftime('%Y'))
         
         # Color difference between before and after Nov 2022
@@ -78,7 +80,8 @@ def plot_trend(df, start=2022, freq='1Y'):
         # # Add labels
         # for container in plt.containers:
         #     plt.bar_label(container, fmt='%.3f', color='brown', padding=1.5)
-
+        
+        plt.xlabel("")
         for i, val in enumerate(tmp):
             plt.text(i, val, f'{val:.3f}', ha='center', va='bottom', color='brown')    
         plt.show()
@@ -93,7 +96,7 @@ def missing_values(data):
     df1, df2 = data[:split], data[split:]
     return pd.concat([df1.fillna(0), df2.interpolate('nearest')])
 
-def generate_df_plot(tmp, start='2022-01'):
+def generate_df_plot(tmp, start='2020'):
     """
     converts df to a timeseries with a dateindex and filled missing values
     """
@@ -124,7 +127,14 @@ def categorical_testing(df, col, col_2='aiContent'):
         # plt.legend()
         plt.grid()
         plt.show()
-
+        
+        
+    # ratio of means
+    means = df.groupby(col)[col_2].mean().values
+    ratio_of_means = means[0]/means[1]
+    ratio_of_means = ratio_of_means if ratio_of_means>=1 else 1/ratio_of_means 
+    print(f"Distribution ratio is {ratio_of_means:.2f}.\n")
+    
     # f-oneway stats test
     catgroup = df.groupby(col)[col_2].apply(list)
     p = f_oneway(*catgroup)[1]
