@@ -1,5 +1,6 @@
 __pycache__/
 .ipynb_checkpoints/
 .DS_Store
-StagingArea/
-Study - AI Content in Amazon Reviews-Copy1.ipynb
+Data/raw_data.csv
+Data/product_cat_average_rating.csv
+src/

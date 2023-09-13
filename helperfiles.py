@@ -14,7 +14,6 @@ from pathlib import Path
 import warnings
 warnings.filterwarnings("ignore")
 import scienceplots
-
 milestone_date = pd.Timestamp("2022-11-30")
 
 
@@ -23,31 +22,15 @@ def get_data_for_analysis():
     gets the processed data
     updates column types
     """
-    df = pd.read_csv('Data/Data_for_analysis_full.csv')
+    df = pd.read_csv('Data/data_for_analysis.csv')
     df['date'] = pd.to_datetime(df['date'])
     df['ratingScore'] = df['ratingScore'].astype('int').reset_index(drop=True)
     return df
-
 
 def get_raw_data():
     """returns source data with sensitive information removed"""
     import pandas as pd
     return pd.read_csv('Data/raw_desensitized_data.csv')
-
-
-def extract_votes(reviewReaction):
-    """
-    input: reviewReaction (int) e.g. 20 people found this review helpful
-    output: the number (int) that finds it helpful or O if it's nan
-    """
-    if type(reviewReaction) == float:
-        return 0
-    num = reviewReaction.split()[0].replace(',', '')
-    if num == 'One':
-        num = 1
-    else:
-        num = int(num)
-    return num
 
 def generate_helpfulScore(helpfulCount, totalCategoryRatings, totalCategoryReviews):
     """
@@ -80,7 +63,7 @@ def plot_trend(df, start=2022, freq='1Y'):
         pd.Grouper(key="date", freq=freq)).mean()
     tmp = tmp.dropna()['aiContent'][str(start):]
     
-    with plt.style.context(['science', 'high-vis']):
+    with plt.style.context(['science', 'ieee', 'high-vis']):
 
         tmp.plot(kind='bar', label='aiContent')
         plt.title('AI generated Amazon reviews')
@@ -133,7 +116,7 @@ def categorical_testing(df, col, col_2='aiContent'):
     from scipy.stats import f_oneway
 
     # bar plot
-    with plt.style.context(['science', 'vibrant', 'grid']):
+    with plt.style.context(['science', 'std-colors']):
         sns.barplot(data=df, x=col, y=col_2)
         plt.xticks(rotation=90)
         plt.yticks([])
